@@ -16,11 +16,13 @@ public class SwiftFlutterTtsPlugin: NSObject, FlutterPlugin, AVSpeechSynthesizer
     
     var channel = FlutterMethodChannel()
     lazy var audioSession = AVAudioSession.sharedInstance()
+    
     init(channel: FlutterMethodChannel) {
         super.init()
         self.channel = channel
-        //synthesizer.delegate = self
-        //setLanguages()
+        
+        // Get all possible languages
+        setLanguages()
         
         // Allow audio playback when the Ring/Silent switch is set to silent
         do {
@@ -33,12 +35,13 @@ public class SwiftFlutterTtsPlugin: NSObject, FlutterPlugin, AVSpeechSynthesizer
     private func initSynthesizer() {
         self.synthesizer = AVSpeechSynthesizer()
         self.synthesizer!.delegate = self
-        setLanguages()
     }
     
     private func setLanguages() {
         for voice in AVSpeechSynthesisVoice.speechVoices(){
-            self.languages.insert(voice.language)
+            let language : String = voice.language
+            
+            self.languages.insert(language)
         }
     }
     
@@ -138,7 +141,16 @@ public class SwiftFlutterTtsPlugin: NSObject, FlutterPlugin, AVSpeechSynthesizer
 
                     }
                     return
+                } else {
+                    synthesizer.stopSpeaking(at: AVSpeechBoundary.immediate);
                 }
+            }
+            
+            do {
+                try AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playback, mode: .default, options: .defaultToSpeaker)
+                try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+            } catch {
+                print("audioSession properties weren't set because of an error.")
             }
             
             self.initSynthesizer();
@@ -159,6 +171,7 @@ public class SwiftFlutterTtsPlugin: NSObject, FlutterPlugin, AVSpeechSynthesizer
     }
     
     private func disableAVSession() {
+        print("disabling AV session")
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         } catch {
